@@ -21,44 +21,52 @@ public class FilterTaskAuth extends OncePerRequestFilter {
 
     @Override
     //***COMERÇAR POR AQUI***
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        //pegar a autenticação (usuario e senha)
-        var authorization = request.getHeader("Authorization");
-        var authEncoded = authorization.substring("Basic".length()).trim();
+        var servletPath = request.getServletPath();
+        if (servletPath.startsWith("/tasks/")) {
 
-        byte[] authDecode = Base64.getDecoder().decode(authEncoded);
-        var authString = new String(authDecode);
+            //pegar a autenticação (usuario e senha)
+            var authorization = request.getHeader("Authorization");
+            var authEncoded = authorization.substring("Basic".length()).trim();
 
-        //***USAR ESSES CONSOLE LOGS COM ELA***
-        //System.out.println("Autenticação: ");
-        //System.out.println(authEncoded);
-        //System.out.println(authDecode);
+            byte[] authDecode = Base64.getDecoder().decode(authEncoded);
+            var authString = new String(authDecode);
 
-        // ["juaum", "123"]
-        String[] credentials = authString.split(":");
-        String username = credentials[0];
-        String password = credentials[1];
+            //***USAR ESSES CONSOLE LOGS COM ELA***
+            //System.out.println("Autenticação: ");
+            //System.out.println(authEncoded);
+            //System.out.println(authDecode);
 
-        //*** Usar esses console logs com ela ***
-//        System.out.println("Autenticação: ");
-//        System.out.println(username);
-//        System.out.println(password);
+            // ["juaum", "123"]
+            String[] credentials = authString.split(":");
+            String username = credentials[0];
+            String password = credentials[1];
 
-        //valida usuario
-            var user =this.userRepository.findByUsername(username);
+            //*** Usar esses console logs com ela ***
+            //        System.out.println("Autenticação: ");
+            //        System.out.println(username);
+            //        System.out.println(password);
+
+            //valida usuario
+            var user = this.userRepository.findByUsername(username);
             if (user == null) {
                 response.sendError(401, "Usuário ou senha inválidos");
-            }else{
+            } else {
                 //valida senha
                 var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
-                if(passwordVerify.verified){
+                if (passwordVerify.verified) {
+                    //segue viagem
+                    //aula 04
+                    request.setAttribute("idUser", user.getId());
                     filterChain.doFilter(request, response);
-                }else{
+                } else {
                     response.sendError(401, "Usuário ou senha inválidos");
                 }
-                //segue viagem
+
             }
+        } else {
+            filterChain.doFilter(request, response);
+        }
     }
 }
